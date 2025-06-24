@@ -5,7 +5,6 @@ from mavros_msgs.msg import State
 from std_msgs.msg import String
 from rosgraph_msgs.msg import Clock  
 
-
 class UAVController:
     def __init__(self, plane_type, uav_id, takeOffOffset=[0, 0, 0]):
         self.plane = plane_type
