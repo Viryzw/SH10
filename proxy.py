@@ -31,7 +31,7 @@ class UAVController:
         # 订阅
         rospy.Subscriber(f"/{self.ns}/mavros/state", State, self._state_cb)
         rospy.Subscriber(f"/{self.ns}/mavros/vision_pose/pose", PoseStamped, self._pose_cb)
-        rospy.Subscriber(f"/{self.ns}/mavros/vision_speed/speed", Vector3Stamped, self._vel_cb)
+        rospy.Subscriber(f"/{self.ns}/mavros/local_position/velocity_local", TwistStamped, self._vel_cb)
         rospy.Subscriber("/clock", Clock, self._clock_cb)
 
         # 发布
@@ -92,7 +92,8 @@ class UAVController:
         dx = target.x - self.pose.pose.position.x
         dy = target.y - self.pose.pose.position.y
         dz = target.z - self.pose.pose.position.z
-        return abs(dx) < self.arrival_threshold and abs(dy) < self.arrival_threshold and abs(dz) < 0.2
+        print(self.pose)
+        return abs(dx) < self.arrival_threshold and abs(dy) < self.arrival_threshold and abs(dz) < 0.5
 
     def _quaternion_to_euler(self, q):
         x, y, z, w = q.x, q.y, q.z, q.w
@@ -113,7 +114,7 @@ class UAVController:
         return self.pose.pose.position.x, self.pose.pose.position.y, self.pose.pose.position.z
 
     def get_velocity(self):
-        return self.vel.vector.x, self.vel.vector.y, self.vel.vector.z
+        return self.vel.twist.linear.x, self.vel.twist.linear.y, self.vel.twist.linear.z
 
     def get_orientation(self):
         return self.euler
