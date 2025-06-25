@@ -12,15 +12,24 @@ class UAVController:
         self.ns = f"{self.plane}_{self.id}"  
 
         self.takeOffOffset = takeOffOffset
+        self.t1 = [1200, 0]
+        self.t2 = [1800, 0]
+        self.gps_point = [1500, 0]
 
         # 状态量
         self.state = State()
         self.pose = PoseStamped()
-        self.vel = Vector3Stamped()
+        self.vel = TwistStamped()
         self.euler = (0, 0, 0)
         self.sim_time = 0.0
 
-        self.arrival_threshold = 0.5  # 控制容差
+        self.X = 0
+        self.Y = 0
+        self.Z = 0
+
+        self.VX = 0
+        self.VY = 0
+        self.VZ = 0
 
         self._init_ros_interfaces()
 
@@ -32,10 +41,13 @@ class UAVController:
         rospy.Subscriber(f"/{self.ns}/mavros/vision_pose/pose", PoseStamped, self._pose_cb)
         rospy.Subscriber(f"/{self.ns}/mavros/local_position/velocity_local", TwistStamped, self._vel_cb)
         rospy.Subscriber("/clock", Clock, self._clock_cb)
+        rospy.Subscriber("/zhihang/downtown", Pose, self._town_cb)
+        rospy.Subscriber("/zhihang/first_point", Pose, self._gps_cb)
 
         # 发布
         self.cmd_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd", String, queue_size=3)
-        self.pose_enu_pub = rospy.Publisher(f"/{self.ns}/mavros/setpoint_position/local", PoseStamped, queue_size=1)
+        #self.pose_enu_pub = rospy.Publisher(f"/{self.ns}/mavros/setpoint_position/local", PoseStamped, queue_size=1)
+        self.pose_enu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_enu", Pose, queue_size=1)
         self.pose_flu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_flu", Pose, queue_size=1)
         self.vel_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_vel_flu", Twist, queue_size=1)
 
@@ -48,14 +60,30 @@ class UAVController:
         self.pose.pose.position.x -= self.takeOffOffset[0]
         self.pose.pose.position.y -= self.takeOffOffset[1]
         self.pose.pose.position.z -= self.takeOffOffset[2]
+        self.X = self.pose.pose.position.x
+        self.Y = self.pose.pose.position.y
+        self.Z = self.pose.pose.position.z
         self.euler = self._quaternion_to_euler(msg.pose.orientation)
 
     def _vel_cb(self, msg):
         self.vel = msg
+        self.VX = msg.twist.linear.x
+        self.VY = msg.twist.linear.y
+        self.VZ = msg.twist.linear.z
 
     def _clock_cb(self, msg):
         # /clock 是 rosgraph_msgs/Clock 类型
         self.sim_time = msg.clock.secs + msg.clock.nsecs * 1e-9
+    
+    def _town_cb(self, msg):
+        self.t1[0] = msg.position.x
+        self.t1[1] = msg.position.y
+        self.t2[0] = msg.orientation.x
+        self.t2[1] = msg.orientation.y
+    
+    def _gps_cb(self, msg):
+        self.gps_point[0] = msg.position.x
+        self.gps_point[1] = msg.position.y
 
     # --- 控制命令发布 ---
     def send_command(self, command_str):
@@ -63,20 +91,19 @@ class UAVController:
 
     def goto_position(self, x, y, z, mode='ENU'):                                                                                                                                                                                                                                                                                                       
         if mode == 'ENU':
-            pose_msg = PoseStamped()
-            pose_msg.header.frame_id = "map"
-            pose_msg.pose.position.x = x
-            pose_msg.pose.position.y = y
-            pose_msg.pose.position.z = z
+            pose_msg = Pose()
+            pose_msg.position.x = x
+            pose_msg.position.y = y
+            pose_msg.position.z = z
             self.pose_enu_pub.publish(pose_msg)
-            return self._is_arrived(pose_msg.pose.position)
+            return self._is_arrived(x, y, z)
         else:
             pose_msg = Pose()
             pose_msg.position.x = x
             pose_msg.position.y = y
             pose_msg.position.z = z
             self.pose_flu_pub.publish(pose_msg)
-            return self._is_arrived(pose_msg.position)
+            return self._is_arrived(x, y, z)
 
     def set_velocity(self, vx, vy, vz, yaw_rate=0):
         vel = Twist()
@@ -87,12 +114,12 @@ class UAVController:
         self.vel_pub.publish(vel)
 
     # --- 实用函数 ---
-    def _is_arrived(self, target):
-        dx = target.x - self.pose.pose.position.x
-        dy = target.y - self.pose.pose.position.y
-        dz = target.z - self.pose.pose.position.z
-        print(self.pose)
-        return abs(dx) < self.arrival_threshold and abs(dy) < self.arrival_threshold and abs(dz) < 0.5
+    def _is_arrived(self, targetx, targety, targetz, threshold=0.5):
+        dx = targetx - self.pose.pose.position.x
+        dy = targety - self.pose.pose.position.y
+        dz = targetz - self.pose.pose.position.z
+        return abs(dx) < threshold and abs(dy) < threshold and abs(dz) < threshold
+
 
     def _quaternion_to_euler(self, q):
         x, y, z, w = q.x, q.y, q.z, q.w
