@@ -1,6 +1,6 @@
-from proxy import UAVController
 import rospy
-import trajectory
+from VENI.proxy import UAVController
+import VENI.trajectory as trajectory
 
 if __name__ == "__main__":
     flag = 0

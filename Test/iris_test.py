@@ -1,8 +1,8 @@
-from proxy import UAVController
+from VENI.proxy import UAVController
 import rospy
 if __name__ == "__main__":
 
-    controller = UAVController("iris", "0", takeOffOffset=[2.3, 0.4, 0.5])
+    controller = UAVController("iris", "0", takeOffOffset=[2.5, 2.7, 0.5])
     flag = 0
     rate = rospy.Rate(20)
     for i in range(100):

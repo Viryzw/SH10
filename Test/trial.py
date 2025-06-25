@@ -1,4 +1,4 @@
-from proxy import UAVController
+from VENI.proxy import UAVController
 import rospy
 if __name__ == "__main__":
 

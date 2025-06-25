@@ -89,21 +89,21 @@ class UAVController:
     def send_command(self, command_str):
         self.cmd_pub.publish(command_str)
 
-    def goto_position(self, x, y, z, mode='ENU'):                                                                                                                                                                                                                                                                                                       
+    def goto_position(self, x, y, z, mode='ENU', threshold=0.5):                                                                                                                                                                                                                                                                                                       
         if mode == 'ENU':
             pose_msg = Pose()
             pose_msg.position.x = x
             pose_msg.position.y = y
             pose_msg.position.z = z
             self.pose_enu_pub.publish(pose_msg)
-            return self._is_arrived(x, y, z)
+            return self._is_arrived(x, y, z, threshold=threshold)
         else:
             pose_msg = Pose()
             pose_msg.position.x = x
             pose_msg.position.y = y
             pose_msg.position.z = z
             self.pose_flu_pub.publish(pose_msg)
-            return self._is_arrived(x, y, z)
+            return self._is_arrived(x, y, z, threshold=threshold)
 
     def set_velocity(self, vx, vy, vz, yaw_rate=0):
         vel = Twist()
@@ -119,7 +119,6 @@ class UAVController:
         dy = targety - self.pose.pose.position.y
         dz = targetz - self.pose.pose.position.z
         return abs(dx) < threshold and abs(dy) < threshold and abs(dz) < threshold
-
 
     def _quaternion_to_euler(self, q):
         x, y, z, w = q.x, q.y, q.z, q.w
