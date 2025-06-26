@@ -23,9 +23,13 @@ class UAVController:
         self.euler = (0, 0, 0)
         self.sim_time = 0.0
 
-        self.X = 0
+        self.X = 0 # home axis
         self.Y = 0
         self.Z = 0
+
+        self.X_world = 0  # gazebo axis
+        self.Y_world = 0
+        self.Z_world = 0
 
         self.VX = 0
         self.VY = 0
@@ -56,11 +60,14 @@ class UAVController:
         self.state = msg
 
     def _pose_cb(self, msg):
-        self.pose = msg  # msg 是 PoseStamped
+        self.pose = msg  
+        self.X_world = self.pose.pose.position.x  # gazebo origin point axis
+        self.Y_world = self.pose.pose.position.y
+        self.Z_world = self.pose.pose.position.z
         self.pose.pose.position.x -= self.takeOffOffset[0]
         self.pose.pose.position.y -= self.takeOffOffset[1]
         self.pose.pose.position.z -= self.takeOffOffset[2]
-        self.X = self.pose.pose.position.x
+        self.X = self.pose.pose.position.x  # take off point axis
         self.Y = self.pose.pose.position.y
         self.Z = self.pose.pose.position.z
         self.euler = self._quaternion_to_euler(msg.pose.orientation)
