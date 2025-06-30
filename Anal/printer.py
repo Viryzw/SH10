@@ -22,7 +22,9 @@ class DataPrinter:
 
         # 处理位置参数，自动推断变量名
         for value in args:
-            var_names = [k for k, v in frame.f_locals.items() if v == value]
+            import numpy as np
+            var_names = [k for k, v in frame.f_locals.items() if np.array_equal(v, value)]
+
             if var_names:
                 all_vars[var_names[0]] = value
 

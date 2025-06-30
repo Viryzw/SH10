@@ -32,7 +32,6 @@ def plan_traj(start, end, obs1, obs2, r, max_iterations=100, safety_margin=2):
     departure_point = mid_point - (approach_point - mid_point)
     traj.append(approach_point.tolist())
     traj.append(mid_point.tolist())
-    traj.append(end)
     traj.append(departure_point)
     traj.append(start)
 
@@ -60,8 +59,8 @@ def plot_trajectory(trajectory, obs1, obs2, r):
     plt.show()
 
 
-# trajectory, adjusted_r = plan_traj(start, end, obs1, obs2, r)
-
+# trajectory= plan_traj([0,0], [1500,0],[1200, 0],[1800,0], 250)
+# print(trajectory)
 # plot_trajectory(trajectory, obs1, obs2, adjusted_r)
 
     
