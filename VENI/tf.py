@@ -1,5 +1,5 @@
 import numpy as np
-import cv2
+import cv2, math
 
 class CoordinateTransformer:
     def __init__(self, camera_matrix, dist_coeffs, R_cam_to_body):
@@ -12,6 +12,7 @@ class CoordinateTransformer:
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
         self.R_cam_to_body = R_cam_to_body
+        self.relative_coord = []
 
     def euler_to_rot_matrix(self, roll, pitch, yaw):
         cr = np.cos(roll)
@@ -65,7 +66,13 @@ class CoordinateTransformer:
         point_world_depth = z * point_world
         
         # 平移处理
+        self.relative_coord = point_world_depth
         point_world_final = point_world_depth + now_point
 
         return point_world_final
 
+def vision_yaw(cx, cy):
+    if cx * cy > 0:
+        return math.atan2(abs(cx), abs(cy))
+    else:
+        return math.atan2(-1*abs(cx), abs(cy))

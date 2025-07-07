@@ -35,6 +35,10 @@ class UAVController:
         self.VY = 0
         self.VZ = 0
 
+        self.red_pos = [0, 0]
+        self.yellow_pos = [0, 0]
+        self.white_pos = [0, 0]
+
         self._init_ros_interfaces()
 
     def _init_ros_interfaces(self):
@@ -54,6 +58,16 @@ class UAVController:
         self.pose_enu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_enu", Pose, queue_size=1)
         self.pose_flu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_flu", Pose, queue_size=1)
         self.vel_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_vel_flu", Twist, queue_size=1)
+
+        self.scout_red_pub = rospy.Publisher("/zhihang2025/first/pose", Pose, queue_size=1)
+        rospy.Subscriber("/zhihang2025/first/pose", Pose, self._red_pos_cb)
+        self.scout_yellow_pub = rospy.Publisher("/zhihang2025/second/pose", Pose, queue_size=1)
+        rospy.Subscriber("/zhihang2025/second/pose", Pose, self._yellow_pos_cb)
+        self.scout_white_pub = rospy.Publisher("/zhihang2025/third/pose", Pose, queue_size=1)
+        rospy.Subscriber("/zhihang2025/third/pose", Pose, self._white_pos_cb)
+
+        self.land_red_pub = rospy.Publisher("/zhihang2025/iris_bad_man/pose", Pose, queue_size=1)
+        self.land_white_pub = rospy.Publisher("/zhihang2025/iris_healthy_man/pose", Pose, queue_size=1)
 
     # --- 回调函数 ---
     def _state_cb(self, msg):
@@ -91,6 +105,20 @@ class UAVController:
     def _gps_cb(self, msg):
         self.gps_point[0] = msg.position.x
         self.gps_point[1] = msg.position.y
+
+    def _red_pos_cb(self, msg):
+        if msg.position.x != 0:
+            self.red_pos[0] = msg.position.x
+            self.red_pos[1] = msg.position.y
+        print("red\n\n\n\n\n\n\n\n\n")
+    
+    def _yellow_pos_cb(self, msg):
+        self.yellow_pos[0] = msg.position.x
+        self.yellow_pos[1] = msg.position.y
+
+    def _white_pos_cb(self, msg):
+        self.white_pos[0] = msg.position.x
+        self.white_pos[1] = msg.position.y
 
     # --- 控制命令发布 ---
     def send_command(self, command_str):
@@ -153,4 +181,30 @@ class UAVController:
 
     def get_sim_time(self):
         return self.sim_time
+    
+    # --- 任务标志位 --- #
+    def mission_Pub(self, x, y, mode):
+        """
+        mode:
+        1: stage i red
+        2: stage i yellow
+        3: stage i white
+
+        4 stage ii red
+        5 stage ii white
+        """
+        pose = Pose()
+        pose.position.x = x
+        pose.position.y = y
+        if mode == 1:
+            self.scout_red_pub.publish(pose)
+        if mode == 2:
+            self.scout_yellow_pub.publish(pose)
+        if mode == 3:
+            self.scout_white_pub.publish(pose)
+        if mode == 4:
+            self.land_red_pub.publish(pose)
+        if mode == 5:
+            self.land_white_pub.publish(pose)
+
 

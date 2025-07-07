@@ -71,3 +71,29 @@ def extend_point(a, b, c, d, distance):
     x = c + extended_vector[0]
     y = d + extended_vector[1]
     return (x, y)
+
+
+def euclidean_distance(point1, point2):
+    return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
+
+def sort_points_by_distance(points, target_point):
+    """
+    按照距离指定点的远近对点进行排序
+    :param points: [(x1, y1), (x2, y2), (x3, y3)] 需要排序的点
+    :param target_point: (x, y) 指定点
+    :return: 按照距离排序后的点列表
+    """
+    distances = [(point, euclidean_distance(point, target_point)) for point in points]
+    sorted_points = sorted(distances, key=lambda x: x[1])
+
+    return [point for point, _ in sorted_points]
+
+def renew_trajctory(main_list, insert_list):
+    front = main_list[:2]
+    back = main_list[-2:] 
+
+    middle = main_list[2:-2]
+    result = front + insert_list + middle + back
+    
+    return result
+

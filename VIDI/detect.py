@@ -10,7 +10,8 @@ from sensor_msgs.msg import Image
         
 
 class YOLODetector:
-    def __init__(self, mode=None, topic_name=None, source=None, model_path="best.pt", save_dir=None, object=None):
+    def __init__(self, gui = True, mode=None, topic_name=None, source=None, model_path="best.pt", save_dir=None, object=None):
+        self.gui = gui
         self.mode = mode                # "ROS"-订阅topic_name; "image"或"video"-读取source
         self.topic_name = topic_name    # 话题全名
         self.source = source            # 图片或视频路径(*.jpg、*.jpeg、*.png、*.mp4)、摄像头(0)
@@ -23,10 +24,16 @@ class YOLODetector:
         self.fps = None
         self.video_writer = None
         self.save_dir = save_dir        # "ROS"模式下保存含目标的原始帧, "detect"模式下保存处理帧
+
+        self.yellow_cx, self.yellow_cy = -1, -1
+        self.yellow_pix_x, self.yellow_pix_y = -1, -1
+        self.red_cx, self.red_cy = -1, -1
+        self.red_pix_x, self.red_pix_y = -1, -1
+        self.white_cx, self.white_cy = -1, -1
+        self.white_pix_x, self.white_pix_y = -1, -1
         
 
         if self.mode == "ROS":
-            rospy.init_node("yolov11_detector_node")
             print(f"[INFO] 使用 ROS 图像话题: {self.topic_name}")
             self.sub = rospy.Subscriber(self.topic_name, Image, self.ros_image_callback, queue_size=1)
             
@@ -44,7 +51,8 @@ class YOLODetector:
                 
     # 图像处理
     def process(self, frame_raw):
-        results = self.model(frame_raw, conf=0.3, verbose=False)[0]
+        height, width = frame_raw.shape[:2]
+        results = self.model(frame_raw, conf=0.7, verbose=False)[0]
         boxes = results.boxes
         frame_proc = frame_raw.copy()
 
@@ -63,20 +71,37 @@ class YOLODetector:
                 cv2.rectangle(frame_proc, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 cv2.putText(frame_proc, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                 self.objects[label] = (cx, cy)
+                if label == "yellow":
+                    self.yellow_pix_x, self.yellow_pix_y = cx, cy
+                    self.yellow_cx, self.yellow_cy = cx / width, cy / height
+                if label == "red":
+                    self.red_pix_x, self.red_pix_y = cx, cy
+                    self.red_cx, self.red_cy = cx / width, cy / height
+                if label == "white":
+                    self.white_pix_x, self.white_pix_y = cx, cy
+                    self.white_cx, self.white_cy = cx / width, cy / height
         
         else:
             self.has_detected = False
             self.objects = {}
+            self.yellow_cx, self.yellow_cy = -1, -1
+            self.yellow_pix_x, self.yellow_pix_y = -1, -1
+            self.red_cx, self.red_cy = -1, -1
+            self.red_pix_x, self.red_pix_y = -1, -1
+            self.white_cx, self.white_cy = -1, -1
+            self.white_pix_x, self.white_pix_y = -1, -1
             
         if self.save_dir:
             self.save_custom(frame_raw, frame_proc)
 
         # 窗口显示
-        cv2.imshow(f"{self.topic_name}", frame_proc)
-        
-        # 窗口销毁
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            self.stop()
+        if self.gui:
+            cv2.namedWindow(f"{self.topic_name}", cv2.WINDOW_NORMAL)
+            cv2.imshow(f"{self.topic_name}", frame_proc)
+            
+            # 窗口销毁
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                self.stop()
             
 
     # ROS话题转成图片

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import least_squares
+import math
 
 class CircleLeastSquaresFilter:
     def __init__(self):
@@ -68,10 +69,11 @@ class CircleLeastSquaresFilter:
         R = self.radius
         dx = x - a
         dy = y - b
-        theta = np.arctan2(dy, dx)
+        #theta = np.arctan2(dy, dx)
+        theta = np.arctan2(math.sqrt(R**2 + dx**2), dx)
         pred_x = a + R * np.cos(theta)
         pred_y = b + R * np.sin(theta)
-        return pred_x, pred_y
+        return x, pred_y
 
 class ClsfManager:
     def __init__(self, max_points=None):
