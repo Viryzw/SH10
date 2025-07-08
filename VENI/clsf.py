@@ -3,9 +3,10 @@ from scipy.optimize import least_squares
 import math
 
 class CircleLeastSquaresFilter:
-    def __init__(self):
+    def __init__(self, iter):
         self.center = None  # (a, b)
         self.radius = None  # R
+        self.iter = iter
 
     def _residuals_basic(self, params, x_data, y_data):
         a, b, R = params
@@ -25,7 +26,7 @@ class CircleLeastSquaresFilter:
             residuals.append(pred_x - x)
         return np.array(residuals).flatten()
 
-    def fit(self, positions, dt=0.1, max_iter=100, tol=1e-3):
+    def fit(self, positions, dt=0.1, tol=1e-3):
         x = np.asarray(positions[:, 0]).flatten()
         y = np.asarray(positions[:, 1]).flatten()
 
@@ -40,7 +41,7 @@ class CircleLeastSquaresFilter:
 
         # 固定半径，优化圆心以使预测点x与输入x更接近
         center_params = np.array([a, b])
-        for i in range(max_iter):
+        for i in range(self.iter):
             res = least_squares(self._residuals_x_consistency, center_params, args=(x, y, R))
             new_center = res.x
             diff = np.linalg.norm(new_center - center_params)
@@ -76,18 +77,19 @@ class CircleLeastSquaresFilter:
         return x, pred_y
 
 class ClsfManager:
-    def __init__(self, max_points=None):
+    def __init__(self, max_points=None, iter = 100, max_fit_point = 3):
         self.max_points = max_points
         self.positions = []
-        self.filter = CircleLeastSquaresFilter()
+        self.filter = CircleLeastSquaresFilter(iter=iter)
         self.fitted = False
+        self.max_fit_point = max_fit_point
 
     def add_point(self, x, y):
         self.positions.append([x, y])
 
         # 如果不设 max_points，只做拟合并返回 center 和 radius
         if self.max_points is None:
-            if len(self.positions) > 3:
+            if len(self.positions) > self.max_fit_point:
                 self._fit()
                 return self.filter.center, self.filter.radius
             else:

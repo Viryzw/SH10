@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+import time
 
 def hex_to_bgr(hex_str):
     """将 16 进制颜色字符串（如 'FFDF06'）转为 BGR 格式 tuple。"""
@@ -46,12 +47,26 @@ class ColorDetector:
         rospy.loginfo("Subscribed to image topic: {}".format(image_topic))
         rospy.loginfo("Target HEX color: #{}".format(target_hex))
 
+        # 初始化计时器
+        self.prev_time = time.time()
+        self.frame_count = 0
+
     def image_callback(self, msg):
+        # 计数和计算帧率
+        self.frame_count += 1
+        current_time = time.time()
+        if current_time - self.prev_time >= 1.0:
+            fps = self.frame_count / (current_time - self.prev_time)
+            rospy.loginfo("FPS: {:.2f}".format(fps))
+            self.frame_count = 0
+            self.prev_time = current_time
+
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         except Exception as e:
             rospy.logerr("CvBridge Error: {}".format(e))
             return
+        
         height, width, _ = frame.shape
         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
         diff = np.linalg.norm(lab.astype(np.int16) - self.target_lab.astype(np.int16), axis=2)
@@ -76,16 +91,16 @@ class ColorDetector:
         else:
             self.cx, self.cy, self.pix_x, self.pix_y = -1, -1, -1, -1
 
-        #cv2.imshow("Color Detection", frame)
+        # 显示图像 (如果需要)
+        cv2.imshow("Color Detection", frame)
         cv2.waitKey(1)
 
 if __name__ == "__main__":
     try:
         rospy.init_node('color_detector_node')
-        topic = "/standard_vtol_0/camera/image_raw"
+        topic = "/iris_0/camera/image_raw"
         detector = ColorDetector(topic, target_hex="FFDF06", threshold=30)  # 黄色
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
     cv2.destroyAllWindows()
-

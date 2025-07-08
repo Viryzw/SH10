@@ -39,6 +39,8 @@ class UAVController:
         self.yellow_pos = [0, 0]
         self.white_pos = [0, 0]
 
+        self.landed = 0
+
         self._init_ros_interfaces()
 
     def _init_ros_interfaces(self):
@@ -65,6 +67,9 @@ class UAVController:
         rospy.Subscriber("/zhihang2025/second/pose", Pose, self._yellow_pos_cb)
         self.scout_white_pub = rospy.Publisher("/zhihang2025/third/pose", Pose, queue_size=1)
         rospy.Subscriber("/zhihang2025/third/pose", Pose, self._white_pos_cb)
+
+        self.stage2_pub = rospy.Publisher("/landed", Pose, queue_size=1)
+        rospy.Subscriber("/landed", Pose, self._land_cb)
 
         self.land_red_pub = rospy.Publisher("/zhihang2025/iris_bad_man/pose", Pose, queue_size=1)
         self.land_white_pub = rospy.Publisher("/zhihang2025/iris_healthy_man/pose", Pose, queue_size=1)
@@ -119,6 +124,9 @@ class UAVController:
     def _white_pos_cb(self, msg):
         self.white_pos[0] = msg.position.x
         self.white_pos[1] = msg.position.y
+    
+    def _land_cb(self, msg):
+        self.landed = msg.position.x        
 
     # --- 控制命令发布 ---
     def send_command(self, command_str):
@@ -206,5 +214,9 @@ class UAVController:
             self.land_red_pub.publish(pose)
         if mode == 5:
             self.land_white_pub.publish(pose)
+        if mode == 6:
+            pose = Pose()
+            pose.position.x = 1
+            self.stage2_pub.publish(pose)
 
 
