@@ -61,12 +61,12 @@ class UAVController:
         self.pose_flu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_flu", Pose, queue_size=1)
         self.vel_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_vel_flu", Twist, queue_size=1)
 
-        self.scout_red_pub = rospy.Publisher("/zhihang2025/first/pose", Pose, queue_size=1)
-        rospy.Subscriber("/zhihang2025/first/pose", Pose, self._red_pos_cb)
-        self.scout_yellow_pub = rospy.Publisher("/zhihang2025/second/pose", Pose, queue_size=1)
-        rospy.Subscriber("/zhihang2025/second/pose", Pose, self._yellow_pos_cb)
-        self.scout_white_pub = rospy.Publisher("/zhihang2025/third/pose", Pose, queue_size=1)
-        rospy.Subscriber("/zhihang2025/third/pose", Pose, self._white_pos_cb)
+        self.scout_red_pub = rospy.Publisher("/zhihang2025/first_man/pose", Pose, queue_size=1)
+        rospy.Subscriber("/zhihang2025/first_man/pose", Pose, self._red_pos_cb)
+        self.scout_yellow_pub = rospy.Publisher("/zhihang2025/second_man/pose", Pose, queue_size=1)
+        rospy.Subscriber("/zhihang2025/second_man/pose", Pose, self._yellow_pos_cb)
+        self.scout_white_pub = rospy.Publisher("/zhihang2025/third_man/pose", Pose, queue_size=1)
+        rospy.Subscriber("/zhihang2025/third_man/pose", Pose, self._white_pos_cb)
 
         self.stage2_pub = rospy.Publisher("/landed", Pose, queue_size=1)
         rospy.Subscriber("/landed", Pose, self._land_cb)

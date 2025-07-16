@@ -31,7 +31,6 @@ def plan_traj(start, end, obs1, obs2, r, max_iterations=100, safety_margin=2):
         break
     departure_point = mid_point - (approach_point - mid_point)
     traj.append(approach_point.tolist())
-    traj.append(mid_point.tolist())
     traj.append(departure_point)
     traj.append(start)
 

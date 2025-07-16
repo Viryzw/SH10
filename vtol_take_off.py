@@ -50,6 +50,7 @@ if __name__ == "__main__":
         elif flag == 1:
             if VTOL.X > 100:
                 detect.start_process = True
+                detect.gui = True
             p1, p2 = trajectory.extend_point(VTOL.X, VTOL.Y, points[pIndex][0], points[pIndex][1], 30) 
             VTOL.goto_position(p1, p2, 25)
             if VTOL._is_arrived(*points[pIndex], 25, threshold=30) and pIndex < len(points) - 1:
@@ -81,7 +82,7 @@ if __name__ == "__main__":
                         errory = true_pose.position.y - calcy
                         truex = true_pose.position.x - 0.5
                         truey = true_pose.position.y
-                        logger.nprint(color, calcx, calcy, errorx, errory, truex, truey, VTOL.VX, VTOL.VY)
+                        logger.nprint(color, errorx, errory)
                         if color == "red":
                             VTOL.mission_Pub(calcx, calcy, 1)
                         if color == "yellow":
