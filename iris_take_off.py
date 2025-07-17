@@ -39,6 +39,7 @@ if __name__ == "__main__":
 
     flag, pIndex = 0, 0
     red_count = 0
+    fit_traj = None
     is_traj = False
     is_diving = False
     relrely, relrelx = 0, 0
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     land_white = False
 
     # ---debug--- #
-    #iris.landed = 1
+    iris.landed = 1
 
     while not rospy.is_shutdown():
         if iris.landed == 1:
@@ -66,8 +67,8 @@ if __name__ == "__main__":
     truey = true_pose.position.y
 
     # ---debug--- #
-    #iris.red_pos = [1495, -105]
-    #iris.white_pos = [truex, truey]
+    iris.red_pos = [1495, -105]
+    iris.white_pos = [truex, truey]
     # ----------- #
 
     rate = rospy.Rate(20)
@@ -90,6 +91,7 @@ if __name__ == "__main__":
         print(f"iris pose {iris.X_world, iris.Y_world}")
         euler = iris.euler
         print(f"euler {euler}")
+        print(f"flag: {flag}")
         current_yaw = iris.euler[2]
         if flag == 0:
             reach1 = iris.goto_position(0, 0, 5.0)
@@ -134,13 +136,14 @@ if __name__ == "__main__":
                 pIndex += 1
             print(f"Moved to next point, new index: {pIndex}")
 
-            if detect.white_cx != -1 and land_white == False and iris._is_arrived(iris.white_pos[0], iris.white_pos[1], 18, threshold=6):
+            if detect.white_cx != -1 and land_white == False and iris._is_arrived(iris.white_pos[0], iris.white_pos[1], 18, threshold=10):
                 keep_going = False
                 iris.set_velocity(0, 0, 0, 0)
                 rospy.sleep(8)
                 flag = 2
                 land_white = True
                 print("Landing white target detected.")
+                continue
                 
             if detect.red_cx != -1 and land_red == False and land_white == True and iris._is_arrived(iris.red_pos[0], iris.red_pos[1], 18, threshold=6):
                 keep_going = False
@@ -149,6 +152,7 @@ if __name__ == "__main__":
                 flag = 3
                 land_red = True
                 print("Landing red target detected.")
+                continue
 
             if iris._is_arrived(0, 0, 18, threshold=25) and pIndex > 2:
                 flag, count = 4, 0

@@ -89,6 +89,13 @@ class YOLODetector:
             boxes = results.boxes
             frame_proc = frame_raw.copy()
 
+            self.yellow_cx, self.yellow_cy = -1, -1
+            self.yellow_pix_x, self.yellow_pix_y = -1, -1
+            self.red_cx, self.red_cy = -1, -1
+            self.red_pix_x, self.red_pix_y = -1, -1
+            self.white_cx, self.white_cy = -1, -1
+            self.white_pix_x, self.white_pix_y = -1, -1
+
             if boxes and len(boxes.cls) > 0:
                 # 检测标志位置真
                 self.has_detected = True
@@ -117,12 +124,12 @@ class YOLODetector:
             else:
                 self.has_detected = False
                 self.objects = {}
-                self.yellow_cx, self.yellow_cy = -1, -1
-                self.yellow_pix_x, self.yellow_pix_y = -1, -1
-                self.red_cx, self.red_cy = -1, -1
-                self.red_pix_x, self.red_pix_y = -1, -1
-                self.white_cx, self.white_cy = -1, -1
-                self.white_pix_x, self.white_pix_y = -1, -1
+                # self.yellow_cx, self.yellow_cy = -1, -1
+                # self.yellow_pix_x, self.yellow_pix_y = -1, -1
+                # self.red_cx, self.red_cy = -1, -1
+                # self.red_pix_x, self.red_pix_y = -1, -1
+                # self.white_cx, self.white_cy = -1, -1
+                # self.white_pix_x, self.white_pix_y = -1, -1
                 
             if self.save_dir:
                 self.save_custom(frame_raw, frame_proc)
