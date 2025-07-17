@@ -24,7 +24,7 @@ if __name__ == "__main__":
                               [-1, 0, 0],
                               [0, 0, -1]])
     tf = CoordinateTransformer(camera_matrix, dist_coeffs, R_cam_to_body)
-    clsf1 = ClsfManager(iter=0, max_fit_point=300)
+    clsf1 = ClsfManager(iter=0, max_fit_point=100)
     model_true_pose = ModelPositionReader(['landing_white'])
     model_true_pose_red = ModelPositionReader(['landing_red'])
     logger = DataPrinter(log_file_name="mission.csv")
@@ -51,6 +51,7 @@ if __name__ == "__main__":
     keep_going = True
     land_red = False
     land_white = False
+    fit_traj = None
 
     # ---debug--- #
     iris.landed = 1
