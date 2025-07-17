@@ -51,19 +51,24 @@ if __name__ == "__main__":
     land_red = False
     land_white = False
 
+    # ---debug--- #
+    #iris.landed = 1
+
     while not rospy.is_shutdown():
         if iris.landed == 1:
             rospy.sleep(5)
             break
+    print(f"Set white position: {iris.white_pos}")
     
     true_pose = model_true_pose.get_model_position("landing_white")
+    print(true_pose)
     truex = true_pose.position.x
     truey = true_pose.position.y
 
+    # ---debug--- #
     #iris.red_pos = [1495, -105]
     #iris.white_pos = [truex, truey]
-    
-    print(f"Set white position: {iris.white_pos}")
+    # ----------- #
 
     rate = rospy.Rate(20)
     for i in range(100):
@@ -93,8 +98,8 @@ if __name__ == "__main__":
                 flag = 1
                 points = trajectory.plan_traj([0, 0], iris.gps_point, iris.t1, iris.t2, 250)
                 print(f"Trajectory planned: {points}")
-                targets = [iris.red_pos, iris.white_pos]
-                targets = trajectory.sort_points_by_distance(targets, points[1])
+                targets = [iris.white_pos, iris.red_pos]
+                #targets = trajectory.sort_points_by_distance(targets, points[1])
                 points = trajectory.renew_trajctory(points, targets)
                 print(f"Trajectory planned: {points}")
 
@@ -122,9 +127,6 @@ if __name__ == "__main__":
                 out_z = pose_pid_z.compute(dz)
                 iris.set_velocity(out_p , 0, out_z, out_yaw)
 
-
-
-
             if iris.X > 100:
                 detect.start_process = True
                 print(f"Started detection process. Red cx: {detect.red_cx}, White cx: {detect.white_cx}")
@@ -140,7 +142,7 @@ if __name__ == "__main__":
                 land_white = True
                 print("Landing white target detected.")
                 
-            if detect.red_cx != -1 and land_red == False and iris._is_arrived(iris.red_pos[0], iris.red_pos[1], 18, threshold=6):
+            if detect.red_cx != -1 and land_red == False and land_white == True and iris._is_arrived(iris.red_pos[0], iris.red_pos[1], 18, threshold=6):
                 keep_going = False
                 iris.set_velocity(0, 0, 0, 0)
                 rospy.sleep(8)
@@ -262,7 +264,7 @@ if __name__ == "__main__":
                 iris.set_velocity(vx * -1, vy, -0.5)
                 print(f"Red target final velocity: {vx}, {vy}")
 
-            if iris.Z_world < 0.6:
+            if iris.Z_world < 0.4:
                 iris.set_velocity(0, 0, 0, 0)
                 #pIndex -= 1
                 flag = 1
@@ -278,6 +280,7 @@ if __name__ == "__main__":
                 errory = iris.Y_world - truey
                 logger.nprint(color, errorx, errory)
                 print(f"Red landing completed. Returning")
+                rospy.sleep(3)
 
         if flag == 4:
             iris.goto_position(0, 0, 25)
