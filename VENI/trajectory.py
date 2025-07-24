@@ -1,14 +1,16 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import math
+import numpy as np
 
+# 判断点是否在禁飞区
 def is_inside_no_fly_zone(point, obs, r):
     return np.linalg.norm(np.array(point) - np.array(obs)) < r
 
+# 规划从 start 到 end 的路径，绕过两个障碍 obs1 和 obs2
 def plan_traj(start, end, obs1, obs2, r, max_iterations=100, safety_margin=2):
     traj = []
     traj.append(start)
 
+    # 构造垂直于 obs1-obs2 连线的向量方向
     mid_point = np.array([(obs1[0] + obs2[0]) / 2, (obs1[1] + obs2[1]) / 2])
     direction = np.array([obs1[1] - obs2[1], obs1[0] - obs2[0]])  # 向量 (y2 - y1, x2 - x1)
     direction_norm = np.linalg.norm(direction)
@@ -17,6 +19,7 @@ def plan_traj(start, end, obs1, obs2, r, max_iterations=100, safety_margin=2):
 
     current_r = r
     
+    # 迭代查找一个安全的中间绕行点
     for i in range(max_iterations):
         approach_point = mid_point + safety_margin * current_r * unit_direction
         
@@ -29,39 +32,14 @@ def plan_traj(start, end, obs1, obs2, r, max_iterations=100, safety_margin=2):
             continue
 
         break
+    
+    # 将绕行路径加入轨迹中 (起点 → approach → departure → 起点)
     departure_point = mid_point - (approach_point - mid_point)
     traj.append(approach_point.tolist())
     traj.append(departure_point)
     traj.append(start)
 
     return traj
-
-# 可视化轨迹
-def plot_trajectory(trajectory, obs1, obs2, r):
-    trajectory = np.array(trajectory)
-    
-    plt.plot(trajectory[:, 0], trajectory[:, 1], 'bo-', label="规划轨迹")
-    
-    circle1 = plt.Circle((obs1[0], obs1[1]), r, color='r', alpha=0.3, label="禁飞区1")
-    circle2 = plt.Circle((obs2[0], obs2[1]), r, color='g', alpha=0.3, label="禁飞区2")
-    plt.gca().add_patch(circle1)
-    plt.gca().add_patch(circle2)
-    
-    plt.scatter(trajectory[0, 0], trajectory[0, 1], color='black', label='起点')
-    plt.scatter(trajectory[-1, 0], trajectory[-1, 1], color='purple', label='终点')
-    
-    plt.legend()
-    plt.xlabel("X")
-    plt.ylabel("Y")
-    plt.title("动态调整轨迹避开禁飞区")
-    plt.grid(True)
-    plt.show()
-
-
-# trajectory= plan_traj([0,0], [1500,0],[1200, 0],[1800,0], 250)
-# print(trajectory)
-# plot_trajectory(trajectory, obs1, obs2, adjusted_r)
-
     
 def extend_point(a, b, c, d, distance):
     length = math.sqrt((a - c)**2 + (b - d)**2)
@@ -71,22 +49,7 @@ def extend_point(a, b, c, d, distance):
     y = d + extended_vector[1]
     return (x, y)
 
-
-def euclidean_distance(point1, point2):
-    return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
-
-def sort_points_by_distance(points, target_point):
-    """
-    按照距离指定点的远近对点进行排序
-    :param points: [(x1, y1), (x2, y2), (x3, y3)] 需要排序的点
-    :param target_point: (x, y) 指定点
-    :return: 按照距离排序后的点列表
-    """
-    distances = [(point, euclidean_distance(point, target_point)) for point in points]
-    sorted_points = sorted(distances, key=lambda x: x[1])
-
-    return [point for point, _ in sorted_points]
-
+# 更新轨迹：在 main_list 中插入 insert_list
 def renew_trajctory(main_list, insert_list):
     front = main_list[:2]
     back = main_list[-2:] 

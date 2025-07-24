@@ -1,10 +1,12 @@
-import rospy
 import math
-from geometry_msgs.msg import PoseStamped, Pose, Twist, TwistStamped, Vector3Stamped
-from mavros_msgs.msg import State
+import rospy
 from std_msgs.msg import String
-from rosgraph_msgs.msg import Clock  
+from mavros_msgs.msg import State
+from rosgraph_msgs.msg import Clock 
+from geometry_msgs.msg import PoseStamped, Pose, Twist, TwistStamped
 
+
+# 无人机控制类
 class UAVController:
     def __init__(self, plane_type, uav_id, takeOffOffset=[0, 0, 0]):
         self.plane = plane_type
@@ -12,9 +14,9 @@ class UAVController:
         self.ns = f"{self.plane}_{self.id}"  
 
         self.takeOffOffset = takeOffOffset
-        self.t1 = [1200, 0]
-        self.t2 = [1800, 0]
-        self.gps_point = [1500, 0]
+        self.t1 = [-1, -1]
+        self.t2 = [-1, -1]
+        self.gps_point = [-1, -1]
 
         # 状态量
         self.state = State()
@@ -56,7 +58,6 @@ class UAVController:
 
         # 发布
         self.cmd_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd", String, queue_size=3)
-        #self.pose_enu_pub = rospy.Publisher(f"/{self.ns}/mavros/setpoint_position/local", PoseStamped, queue_size=1)
         self.pose_enu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_enu", Pose, queue_size=1)
         self.pose_flu_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_pose_flu", Pose, queue_size=1)
         self.vel_pub = rospy.Publisher(f"/xtdrone/{self.ns}/cmd_vel_flu", Twist, queue_size=1)
@@ -74,7 +75,7 @@ class UAVController:
         self.land_red_pub = rospy.Publisher("/zhihang2025/iris_bad_man/pose", Pose, queue_size=1)
         self.land_white_pub = rospy.Publisher("/zhihang2025/iris_healthy_man/pose", Pose, queue_size=1)
 
-    # --- 回调函数 ---
+    # --- 回调函数 --- #
     def _state_cb(self, msg):
         self.state = msg
 
@@ -115,7 +116,7 @@ class UAVController:
         if msg.position.x != 0:
             self.red_pos[0] = msg.position.x
             self.red_pos[1] = msg.position.y
-        print("red\n\n\n\n\n\n\n\n\n")
+        print("red\n")
     
     def _yellow_pos_cb(self, msg):
         self.yellow_pos[0] = msg.position.x
@@ -128,7 +129,7 @@ class UAVController:
     def _land_cb(self, msg):
         self.landed = msg.position.x        
 
-    # --- 控制命令发布 ---
+    # --- 控制命令发布 --- #
     def send_command(self, command_str):
         self.cmd_pub.publish(command_str)
 
@@ -156,7 +157,7 @@ class UAVController:
         vel.angular.z = yaw_rate
         self.vel_pub.publish(vel)
 
-    # --- 实用函数 ---
+    # --- 实用函数 --- #
     def _is_arrived(self, targetx, targety, targetz, threshold=0.5):
         dx = targetx - self.pose.pose.position.x
         dy = targety - self.pose.pose.position.y
@@ -177,7 +178,7 @@ class UAVController:
         yaw = math.atan2(siny_cosp, cosy_cosp)
         return roll, pitch, yaw
 
-    # --- 数据读取接口 ---
+    # --- 数据读取接口 --- #
     def get_pose(self):
         return self.pose.pose.position.x, self.pose.pose.position.y, self.pose.pose.position.z
 
@@ -218,5 +219,3 @@ class UAVController:
             pose = Pose()
             pose.position.x = 1
             self.stage2_pub.publish(pose)
-
-

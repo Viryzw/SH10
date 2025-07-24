@@ -1,13 +1,14 @@
 import numpy as np
 import cv2, math
 
+# 坐标解算
 class CoordinateTransformer:
     def __init__(self, camera_matrix, dist_coeffs, R_cam_to_body):
         """
         camera_matrix: 3x3 np.array, 相机内参矩阵
         dist_coeffs: 1D np.array, 畸变系数
-        R_cam_to_body: 3x3 np.array， 相机坐标系到机体坐标系的旋转矩阵，默认单位矩阵
-        roll, pitch, yaw: 机体姿态角（弧度），用于世界坐标系变换
+        R_cam_to_body: 3x3 np.array, 相机坐标系到机体坐标系的旋转矩阵, 默认单位矩阵
+        roll, pitch, yaw: 机体姿态角(弧度), 用于世界坐标系变换
         """
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
@@ -70,9 +71,3 @@ class CoordinateTransformer:
         point_world_final = point_world_depth + now_point
 
         return point_world_final
-
-def vision_yaw(cx, cy):
-    if cx * cy > 0:
-        return math.atan2(abs(cx), abs(cy))
-    else:
-        return math.atan2(-1*abs(cx), abs(cy))

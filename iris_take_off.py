@@ -1,33 +1,24 @@
-import rospy, time, math
 import numpy as np
+import rospy, time, math
 import VENI.trajectory as trajectory
-from VENI.proxy import UAVController
-from VENI.tf import CoordinateTransformer, vision_yaw
 from VENI.PID import PID
 from VENI.clsf import ClsfManager
-from Anal.model_pos import ModelPositionReader
-from Anal.printer import DataPrinter
+from VENI.proxy import UAVController
+from VENI.tf import CoordinateTransformer
 from VIDI.detect import YOLODetector
 
 if __name__ == "__main__":
-
-    iris = UAVController("iris", "0", takeOffOffset=[2.5, 2.7, 0.5])
-    topic = "/iris_0/camera/image_raw"
-    detect = YOLODetector(mode="ROS", gui=False, topic_name=topic, model_path="low.pt")
-    camera_matrix = np.array([
-        [369.502083, 0, 640],
-        [0, 369.502083, 360],
-        [0, 0, 1]
-    ], dtype=np.float64)
-    dist_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64)
-    R_cam_to_body = np.array([[0, -1, 0],
-                              [-1, 0, 0],
-                              [0, 0, -1]])
-    tf = CoordinateTransformer(camera_matrix, dist_coeffs, R_cam_to_body)
-    clsf1 = ClsfManager(iter=0, max_fit_point=100)
-    model_true_pose = ModelPositionReader(['landing_white'])
-    model_true_pose_red = ModelPositionReader(['landing_red'])
-    logger = DataPrinter(log_file_name="mission.csv")
+    # --- 初始化 iris --- #
+    iris = UAVController("iris", "0", takeOffOffset=[2.5, 2.7, 0.5]) 
+    
+    # --- 初始化工具类 --- #
+    detect = YOLODetector(gui=False, topic_name="/iris_0/camera/image_raw", model_path="low.pt")
+    tf = CoordinateTransformer(
+        camera_matrix=np.array([[369.502083, 0, 640], [0, 369.502083, 360], [0, 0, 1]], dtype=np.float64),
+        dist_coeffs=np.zeros(5, dtype=np.float64),
+        R_cam_to_body=np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]])
+    )
+    clsf1 = ClsfManager(iter=0, max_fit_point=300)
 
     pid_x = PID(0.3, 0.0, 0, 0.05)
     pid_y = PID(0.3, 0.0, 0, 0.05)
@@ -35,8 +26,10 @@ if __name__ == "__main__":
     pose_pid_p = PID(0.4, 0.0, 0, 0.05)
     pose_pid_yaw = PID(0.6, 0.0, 0, 0.05)
     pose_pid_z = PID(0.3, 0.0, 0, 0.05)
+    
     cruise_height = 18
 
+    # --- 初始化各标志位和计数器 --- #
     flag, pIndex = 0, 0
     red_count = 0
     fit_traj = None
@@ -53,24 +46,12 @@ if __name__ == "__main__":
     land_white = False
     fit_traj = None
 
-    # ---debug--- #
-    iris.landed = 1
-
+    # --- 等待 vtol 锁桨降落 --- #
     while not rospy.is_shutdown():
         if iris.landed == 1:
             rospy.sleep(5)
             break
     print(f"Set white position: {iris.white_pos}")
-    
-    true_pose = model_true_pose.get_model_position("landing_white")
-    print(true_pose)
-    truex = true_pose.position.x
-    truey = true_pose.position.y
-
-    # ---debug--- #
-    iris.red_pos = [1495, -105]
-    iris.white_pos = [truex, truey]
-    # ----------- #
 
     rate = rospy.Rate(20)
     for i in range(100):
@@ -83,7 +64,7 @@ if __name__ == "__main__":
 
     while not rospy.is_shutdown():
         if iris.red_pos[0] != 0:
-            detect.gui = True
+            detect.gui = True       # 打开视窗
             print(f"Red position detected: {iris.red_pos[0]}")
             break
 
@@ -94,6 +75,7 @@ if __name__ == "__main__":
         print(f"euler {euler}")
         print(f"flag: {flag}")
         current_yaw = iris.euler[2]
+        
         if flag == 0:
             reach1 = iris.goto_position(0, 0, 5.0)
             print(f"goto_position status: {reach1}")
@@ -101,18 +83,17 @@ if __name__ == "__main__":
                 flag = 1
                 points = trajectory.plan_traj([0, 0], iris.gps_point, iris.t1, iris.t2, 250)
                 print(f"Trajectory planned: {points}")
+                
+                # --- 根据目标位置进行路径规划 --- #
                 targets = [iris.white_pos, iris.red_pos]
-                #targets = trajectory.sort_points_by_distance(targets, points[1])
                 points = trajectory.renew_trajctory(points, targets)
                 print(f"Trajectory planned: {points}")
 
         if flag == 1:
             if keep_going:
                 print(f"Current Point: {points[pIndex]}, Index: {pIndex}")
-                #iris.goto_position(points[pIndex][0], points[pIndex][1], 18)
 
-
-
+                # --- 调整姿态, 回正 --- #
                 dx = points[pIndex][0] - iris.X_world
                 dy = points[pIndex][1] - iris.Y_world
                 
@@ -133,10 +114,12 @@ if __name__ == "__main__":
             if iris.X > 100:
                 detect.start_process = True
                 print(f"Started detection process. Red cx: {detect.red_cx}, White cx: {detect.white_cx}")
+                
             if iris._is_arrived(points[pIndex][0], points[pIndex][1], 18, threshold=5) and pIndex < len(points) - 1:
                 pIndex += 1
-            print(f"Moved to next point, new index: {pIndex}")
+                print(f"Moved to next point, new index: {pIndex}")
 
+            # --- 检测到健康人员, 准备降落 --- #
             if detect.white_cx != -1 and land_white == False and iris._is_arrived(iris.white_pos[0], iris.white_pos[1], 18, threshold=10):
                 keep_going = False
                 iris.set_velocity(0, 0, 0, 0)
@@ -145,7 +128,8 @@ if __name__ == "__main__":
                 land_white = True
                 print("Landing white target detected.")
                 continue
-                
+            
+            # --- 检测到危重人员, 且已救援健康人员, 准备降落 --- #
             if detect.red_cx != -1 and land_red == False and land_white == True and iris._is_arrived(iris.red_pos[0], iris.red_pos[1], 18, threshold=6):
                 keep_going = False
                 iris.set_velocity(0, 0, 0, 0)
@@ -160,6 +144,8 @@ if __name__ == "__main__":
                 print(f"Returning to origin. Flag: {flag}")
 
         if flag == 2:
+            
+            # --- 救援健康人员 --- #
             if is_traj == False:
                 if detect.white_cx > 0:
                     point_body = tf.pixel_to_world((detect.white_pix_x, detect.white_pix_y),
@@ -178,8 +164,10 @@ if __name__ == "__main__":
             else:
                 if iris.Z > 10:
                     if abs(current_yaw) > 0.06:
-                        out_yaw = pose_pid_yaw.compute(-1*current_yaw)
+                        out_yaw = pose_pid_yaw.compute(-1 * current_yaw)
                         iris.set_velocity(0, 0, 0, out_yaw)
+                        
+                    # --- 初步下降 --- #
                     if detect.white_cx > 0:
                         pred, offset = fit_traj
                         relx, rely = iris.X_world - pred[0], iris.Y_world - pred[1]
@@ -202,6 +190,7 @@ if __name__ == "__main__":
 
                 else:
 
+                    # --- 计算降落位置 --- #
                     if is_diving == False:
                         iris.set_velocity(0, 0, 0, 0)
                         if detect.white_cx > 0:
@@ -213,29 +202,22 @@ if __name__ == "__main__":
                             print(f"offset {calcx - pred[0] - offset, calcy - pred[1]}")
                             if abs(calcx - pred[0] - offset) < 0.5 and abs(calcy - pred[1]) < 0.5:
                                 is_diving = True
-                                vz = -1*(iris.Z_world - 0.7) / 10
+                                vz = -1 * (iris.Z_world - 0.7) / 12.2
                     else:
+                        
+                        # --- 满足高度要求后发布健康人员坐标 --- #
                         if iris.Z_world < 0.6:
                             iris.set_velocity(0, 0, 0, 0)
                             detect.start_land_judge = True
                             print(f"Can we land: {detect.can_we_land}")
                             if detect.can_we_land:
-                                true_pose = model_true_pose.get_model_position("landing_white")
-                                truex = true_pose.position.x
-                                truey = true_pose.position.y
-                                print(f"Landing white: true position: {truex}, {truey}")
-                                print(f"Position difference: {truex - iris.X_world}, {truey - iris.Y_world}")
-                                
-                                #pIndex -= 1
                                 flag = 1
                                 land_white = True
                                 keep_going = True
                                 rospy.sleep(0.1)
                                 iris.mission_Pub(iris.X_world, iris.Y_world, 5)
                                 color = "white"
-                                errorx = truex - 0.5 - iris.X_world
-                                errory = truey - iris.Y_world
-                                logger.nprint(color, errorx, errory)
+
                         else:
                             relx, rely = iris.X_world - pred[0] - offset, iris.Y_world - pred[1]
                             out_x = pid_x.compute(relx)
@@ -244,7 +226,11 @@ if __name__ == "__main__":
                             iris.set_velocity(out_x * -1, out_y, vz, 0)
 
         if flag == 3:
+            
+            # --- 救援危重人员 --- #
             print("Red target flag active.")
+            
+            # --- 解算目标位置 --- #
             if red_count < 100 and detect.red_cx > 0 :
                 iris.set_velocity(0, 0, 0, 0)
                 point_body = tf.pixel_to_world((detect.red_pix_x, detect.red_pix_y),
@@ -254,39 +240,37 @@ if __name__ == "__main__":
                 red_y.append(point_body[1])
                 print(f"point_body {point_body}")
                 print(f"Red pixel data: {detect.red_pix_x}, {detect.red_pix_y}, Red count: {red_count}")
+                
             if abs(current_yaw) > 0.06:
                 out_yaw = pose_pid_yaw.compute(-1*current_yaw)
                 iris.set_velocity(0, 0, 0, out_yaw)
+                
             if red_count > 99 and abs(current_yaw) < 5:
                 red_coord = np.sum(red_x) / len(red_x), np.sum(red_y) / len(red_y)
                 print(f"red coord{red_coord}")
                 print(f"iris coord {iris.X_world}, {iris.Y_world}")
-                errx = iris.X_world - red_coord[0] #if iris.X_world - red_coord[0] < 4 else 4)
-                erry = iris.Y_world - red_coord[1] #if iris.X_world - red_coord[0] < 4 else 4)
+                errx = iris.X_world - red_coord[0]
+                erry = iris.Y_world - red_coord[1]
                 vy = pid_x.compute(erry)
                 vx = pid_y.compute(errx)
                 
                 iris.set_velocity(vx * -1, vy, -0.5)
                 print(f"Red target final velocity: {vx}, {vy}")
 
+            # --- 满足高度要求后发布危重人员坐标 --- #
             if iris.Z_world < 0.4:
                 iris.set_velocity(0, 0, 0, 0)
-                #pIndex -= 1
                 flag = 1
                 land_red = True
                 keep_going = True
                 iris.mission_Pub(point_body[0], point_body[1], 4)
-                true_pose = model_true_pose_red.get_model_position("landing_red")
-                truex = true_pose.position.x
-                truey = true_pose.position.y
 
                 color = "red"
-                errorx = truex + 0.5 - iris.X_world
-                errory = iris.Y_world - truey
-                logger.nprint(color, errorx, errory)
+                
                 print(f"Red landing completed. Returning")
                 rospy.sleep(3)
 
+        # --- 完成救援任务, 返程并锁桨降落 --- #
         if flag == 4:
             iris.goto_position(0, 0, 25)
             print(f"Returning to origin. Flag: {flag}")

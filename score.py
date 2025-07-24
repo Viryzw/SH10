@@ -45,7 +45,7 @@ def stage2_score(d, weight):
     return max(0.0, (100 - 33 * d) * weight) if d <= 3 else 0.0
 
 if __name__ == "__main__":
-    bag_path = "score2.bag"  # 改为你的路径
+    bag_path = "score1.bag"  # 改为你的路径
     bag = rosbag.Bag(bag_path)
 
     # 评分配置：话题 → Gazebo模型名
