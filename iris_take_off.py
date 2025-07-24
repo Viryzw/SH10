@@ -12,7 +12,7 @@ if __name__ == "__main__":
     iris = UAVController("iris", "0", takeOffOffset=[2.5, 2.7, 0.5]) 
     
     # --- 初始化工具类 --- #
-    detect = YOLODetector(gui=False, topic_name="/iris_0/camera/image_raw", model_path="low.pt")
+    detect = YOLODetector(gui=False, topic_name="/iris_0/camera/image_raw", model_path="VIDI/low.pt")
     tf = CoordinateTransformer(
         camera_matrix=np.array([[369.502083, 0, 640], [0, 369.502083, 360], [0, 0, 1]], dtype=np.float64),
         dist_coeffs=np.zeros(5, dtype=np.float64),

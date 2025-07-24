@@ -17,7 +17,7 @@ if __name__ == "__main__":
         dist_coeffs=np.zeros(5, dtype=np.float64),
         R_cam_to_body=np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]])
     )
-    detect = YOLODetector(gui=False, topic_name="/standard_vtol_0/camera/image_raw", model_path="high.pt")
+    detect = YOLODetector(gui=False, topic_name="/standard_vtol_0/camera/image_raw", model_path="VIDI/high.pt")
     rate = rospy.Rate(20)
 
     # --- 起飞动作 --- #
